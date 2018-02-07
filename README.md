@@ -55,10 +55,6 @@ setTimeout( () => {
          source: 1,
          target: person { id: 2, first: 'Robert', last: 'Coe', friends: [Array] } },
        friend {
-         id: 2,
-         source: 1,
-         target: person { id: 3, first: 'French', last: 'Boy' } },
-       friend {
          id: 3,
          source: 1,
          target: person { id: 4, first: 'James', last: 'Joe' } } ] },
