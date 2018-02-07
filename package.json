@@ -1,0 +1,20 @@
+{
+  "name": "mfd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Robert Coe",
+  "license": "ISC",
+  "devDependencies": {
+    "eslint": "^4.16.0",
+    "eslint-config-mdcs": "^4.2.3"
+  },
+  "dependencies": {
+    "@std/esm": "^0.20.0",
+    "mysql2": "^1.5.1"
+  },
+  "@std/esm": "cjs"
+}
