@@ -26,20 +26,9 @@ function flatten( original ) {
 
 }
 
-// query.where( {
-// 	"person.name": /Robert/,
-// 	"order.total": { $gt: 5 },
-// 	"order.total": { $gt: { $identifer: "blah" } }
-// } );
-
-// query.where( [] );
-
-const pPush = ( target, source ) => {
-
-	for ( let i = 0; i < target.length; i ++ )
-		target[ i ].push( ...( Array.isArray( source[ i ] ) ? source[ i ] : [ source[ i ] ] ) );
-
-};
+const pPush = ( targets, source ) =>
+	targets.forEach( ( target, i ) =>
+		target.push( ...( Array.isArray( source[ i ] ) ? source[ i ] : [ source[ i ] ] ) ) );
 
 function processWhere( where, partial = false, joiner = " AND " ) {
 
@@ -50,21 +39,23 @@ function processWhere( where, partial = false, joiner = " AND " ) {
 	const strings = [];
 	const args = [];
 
-	for ( let i = 0; i < entries.length; i ++ ) {
-
-		const [ left, right ] = entries[ i ];
+	entries.forEach( ( [ left, right ] ) => {
 
 		switch ( left ) {
 
 			case "$identifer": pPush( [ strings, args ], [ partial ? " = ??" : "??", right ] ); break;
 			case "$or": {
 
-				const orStrings = [];
-				const subArgs = [];
-				for ( let i = 0; i < right.length; i ++ )
-					pPush( [ orStrings, subArgs ], processWhere( right, false, " OR " ) );
+				if ( Array.isArray( right ) ) {
 
-				pPush( [ strings, args ], [ `( ${strings.join( " OR " )} )`, subArgs ] );
+					const orStrings = [];
+					const subArgs = [];
+					right.forEach( part => pPush( [ orStrings, subArgs ], processWhere( part ) ) );
+
+					pPush( [ strings, args ], [ `( ${orStrings.join( " OR " )} )`, subArgs ] );
+
+				} else pPush( [ strings, args ], processWhere( right, false, " OR " ) );
+
 				break;
 
 			}
@@ -78,7 +69,7 @@ function processWhere( where, partial = false, joiner = " AND " ) {
 
 		}
 
-	}
+	} );
 
 	return [ strings.join( joiner ), args ];
 
@@ -113,12 +104,16 @@ export default class Query {
 
 		} )();
 
-		const query = tables.map( unions => unions.map( () => `
-SELECT DISTINCT ??.*
-FROM ?? ${this.populates.map( () => "\nLEFT JOIN ?? AS ?? ON ??.?? = ??.??" ).join( "\n" )} ${this.whereQuery ? `
-WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" ) ).join( ";\n" );
+		const query = tables.map( unions => `
+SELECT t1.*, GROUP_CONCAT( table__source ) AS table__sources FROM (${unions.map( () => `
+	SELECT DISTINCT ??.*, ? AS table__source
+	FROM ?? ${this.populates.map( () => `
+		LEFT JOIN ?? AS ?? ON ??.?? = ??.??` ).join( "" )} ${this.whereQuery ? `
+	WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" )}
+) t1 GROUP BY t1.id;` ).join( "\n" );
 
 		const args = flatten( tables.map( unions => unions.map( source => [
+			typeof source === "function" ? source.name : source.path.join( "__" ),
 			typeof source === "function" ? source.name : source.path.join( "__" ),
 			this.select.name,
 			this.populates.map( populate => [
@@ -164,7 +159,6 @@ WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" ) ).join( ";\n" );
 		this.whereObj = Object.entries( where );
 
 		[ this.whereQuery, this.whereArgs ] = processWhere( where );
-		console.log( this.whereQuery );
 
 		return this;
 
@@ -174,7 +168,7 @@ WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" ) ).join( ";\n" );
 
 		const [ query, args ] = this.render();
 
-		{
+		if ( this.mdf.debug ) {
 
 			let str = query;
 			let i = 0;
@@ -198,15 +192,11 @@ WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" ) ).join( ";\n" );
 
 		return this.mdf.pool.query( query, args ).then( ( [ results ] ) => {
 
-			// Filter primary collection to those truly selected (i.e., A -> B -> A', only get A)
-			const conditions = ( this.whereObj || [] ).filter( ( [ left ] ) => {
+			for ( let i = 0; i < results.length; i ++ )
+				for ( let n = 0; n < results[ i ].length; n ++ )
+					results[ i ][ n ] = Object.assign( new this.mdf.collections[ this.tables[ i ] ](), results[ i ][ n ] );
 
-				const parts = left.split( "." );
-				return parts.length === 1 || ( parts.length === 2 && parts[ 0 ] === this.select.name );
-
-			} ).map( ( [ left, right ] ) => [ left.split( "." ).pop(), right ] );
-
-			const result = results[ 0 ].filter( row => conditions.every( ( [ left, right ] ) => row[ left ] == right ) );
+			const result = results[ 0 ].filter( row => row.table__sources.split( "," ).includes( this.select.name ) );
 
 			// Populate primary collection, breadth-first
 			let processed = 0;
@@ -221,8 +211,8 @@ WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" ) ).join( ";\n" );
 
 					// Grab all documents in layer
 					let docs = result;
-					for ( let n = 0; n < populates[ i ].path.length - 1; n ++ )
-						docs = [].concat( ...docs.map( doc => Array.isArray( doc[ populates[ i ].path[ n ] ] ) ? doc[ populates[ i ].path[ n ] ] : [ doc[ populates[ i ].path[ n ] ] ] ) );
+					populates[ i ].path.slice( 0, - 1 ).forEach( pathPart =>
+						docs = [].concat( ...docs.map( doc => Array.isArray( doc[ pathPart ] ) ? doc[ pathPart ] : [ doc[ pathPart ] ] ) ) );
 
 					// console.log( table );
 
