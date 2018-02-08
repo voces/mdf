@@ -10,17 +10,15 @@ CREATE TABLE `person` (
 	`first` VARCHAR(128) NULL DEFAULT NULL,
 	`last` VARCHAR(128) NOT NULL,
 	PRIMARY KEY (`id`)
-)
+);
 CREATE TABLE `friend` (
-	`id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
 	`source` INT(10) UNSIGNED NOT NULL,
 	`target` INT(10) UNSIGNED NOT NULL,
-	PRIMARY KEY (`id`),
-	UNIQUE INDEX `source_target` (`source`, `target`),
+	PRIMARY KEY (`source`, `target`),
 	INDEX `likedBy` (`target`),
 	CONSTRAINT `friends` FOREIGN KEY (`source`) REFERENCES `person` (`id`) ON UPDATE CASCADE ON DELETE CASCADE,
 	CONSTRAINT `likedBy` FOREIGN KEY (`target`) REFERENCES `person` (`id`) ON UPDATE CASCADE ON DELETE CASCADE
-)
+);
 ```
 
 ### Querying

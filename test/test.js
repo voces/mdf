@@ -1,4 +1,6 @@
 
+/* eslint-disable no-console */
+
 const MDF = require( "../index.js" );
 
 const mdf = new MDF( {

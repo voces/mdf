@@ -1,20 +1,4 @@
 
-function weave( a, b ) {
-
-	const arr = [];
-	for ( let i = 0; i < a.length && i < b.length; i ++ )
-		arr.push( a[ i ], b[ i ] );
-
-	for ( let i = b.length; i < a.length; i ++ )
-		arr.push( a[ i ] );
-
-	for ( let i = a.length; i < b.length; i ++ )
-		arr.push( b[ i ] );
-
-	return arr;
-
-}
-
 function flatten( original ) {
 
 	const arr = [];
@@ -100,30 +84,33 @@ export default class Query {
 			}
 
 			this.tables = Object.keys( tables );
-			return Object.values( tables );
+			return Object.entries( tables );
 
 		} )();
 
-		const query = tables.map( unions => `
+		const query = tables.map( ( [ table, unions ] ) => `
 SELECT t1.*, GROUP_CONCAT( table__source ) AS table__sources FROM (${unions.map( () => `
 	SELECT DISTINCT ??.*, ? AS table__source
 	FROM ?? ${this.populates.map( () => `
 		LEFT JOIN ?? AS ?? ON ??.?? = ??.??` ).join( "" )} ${this.whereQuery ? `
-	WHERE ${this.whereQuery}` : ""}` ).join( "\nUNION DISTINCT" )}
-) t1 GROUP BY t1.id;` ).join( "\n" );
+	WHERE ${this.whereQuery}` : ""}` ).join( `
+	UNION DISTINCT` )}
+) t1 GROUP BY ${this.mdf.collections[ table ].key.map( () => "??" ).join( ", " )};` ).join( "\n" );
 
-		const args = flatten( tables.map( unions => unions.map( source => [
-			typeof source === "function" ? source.name : source.path.join( "__" ),
-			typeof source === "function" ? source.name : source.path.join( "__" ),
-			this.select.name,
-			this.populates.map( populate => [
-				populate.relation.target.table.name,
-				populate.path.join( "__" ),
-				populate.path.slice( 0, - 1 ).join( "__" ) || this.select.name,
-				populate.relation.source,
-				populate.path.join( "__" ),
-				populate.relation.target.column ] ),
-			this.whereArgs || [] ] ) ) );
+		const args = flatten( tables.map( ( [ table, unions ] ) => [
+			unions.map( source => [
+				typeof source === "function" ? source.name : source.path.join( "__" ),
+				typeof source === "function" ? source.name : source.path.join( "__" ),
+				this.select.name,
+				this.populates.map( populate => [
+					populate.relation.target.table.name,
+					populate.path.join( "__" ),
+					populate.path.slice( 0, - 1 ).join( "__" ) || this.select.name,
+					populate.relation.source,
+					populate.path.join( "__" ),
+					populate.relation.target.column ] ),
+				this.whereArgs || [] ] ),
+			this.mdf.collections[ table ].key ] ) );
 
 		return [ query, args ];
 
@@ -186,15 +173,17 @@ SELECT t1.*, GROUP_CONCAT( table__source ) AS table__sources FROM (${unions.map(
 
 			}
 
+			// eslint-disable-next-line no-console
 			console.log( str );
 
 		}
 
 		return this.mdf.pool.query( query, args ).then( ( [ results ] ) => {
 
-			for ( let i = 0; i < results.length; i ++ )
-				for ( let n = 0; n < results[ i ].length; n ++ )
-					results[ i ][ n ] = Object.assign( new this.mdf.collections[ this.tables[ i ] ](), results[ i ][ n ] );
+			if ( ! this.mdf.lite )
+				for ( let i = 0; i < results.length; i ++ )
+					for ( let n = 0; n < results[ i ].length; n ++ )
+						results[ i ][ n ] = Object.assign( new this.mdf.collections[ this.tables[ i ] ](), results[ i ][ n ] );
 
 			const result = results[ 0 ].filter( row => row.table__sources.split( "," ).includes( this.select.name ) );
 
