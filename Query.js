@@ -14,10 +14,10 @@ const pPush = ( targets, source ) =>
 	targets.forEach( ( target, i ) =>
 		target.push( ...( Array.isArray( source[ i ] ) ? source[ i ] : [ source[ i ] ] ) ) );
 
-function processWhere( where, partial = false, joiner = " AND " ) {
+function processWhere( where, prefix = "", joiner = " AND " ) {
 
 	if ( typeof where !== "object" || where instanceof Buffer || where instanceof Date || where === null )
-		return [ partial ? " = ?" : "?", [ where ]];
+		return [ prefix ? prefix + "?" : "?", [ where ]];
 
 	const entries = Object.entries( where );
 	const strings = [];
@@ -27,7 +27,35 @@ function processWhere( where, partial = false, joiner = " AND " ) {
 
 		switch ( left ) {
 
-			case "$identifer": pPush( [ strings, args ], [ partial ? " = ??" : "??", right ] ); break;
+			// MySQL
+			case "$identifer": pPush( [ strings, args ], [ prefix ? prefix + "??" : "??", right ] ); break;
+
+			// Comparison
+			case "$eq": pPush( [ strings, args ], processWhere( right, " = " ) ); break;
+			case "$gt": pPush( [ strings, args ], processWhere( right, " > " ) ); break;
+			case "$gte": pPush( [ strings, args ], processWhere( right, " >= " ) ); break;
+			case "$lt": pPush( [ strings, args ], processWhere( right, " < " ) ); break;
+			case "$lte": pPush( [ strings, args ], processWhere( right, " <= " ) ); break;
+			case "$ne": pPush( [ strings, args ], processWhere( right, " <> " ) ); break;
+			case "$like": pPush( [ strings, args ], processWhere( right, " LIKE " ) ); break;
+			case "$sounds": pPush( [ strings, args ], processWhere( right, " SOUNDS LIKE " ) ); break;
+
+			// Logical
+			case "$and": {
+
+				if ( Array.isArray( right ) ) {
+
+					const orStrings = [];
+					const subArgs = [];
+					right.forEach( part => pPush( [ orStrings, subArgs ], processWhere( part ) ) );
+
+					pPush( [ strings, args ], [ `( ${orStrings.join( " AND " )} )`, subArgs ] );
+
+				} else pPush( [ strings, args ], processWhere( right, false, " AND " ) );
+
+				break;
+
+			}
 			case "$or": {
 
 				if ( Array.isArray( right ) ) {
@@ -44,9 +72,11 @@ function processWhere( where, partial = false, joiner = " AND " ) {
 
 			}
 
+			// Numerical
+
 			default: {
 
-				const [ string, subArgs ] = processWhere( right, true );
+				const [ string, subArgs ] = processWhere( right, " = " );
 				pPush( [ strings, args ], [ "??" + string, [ left, ...subArgs ]] );
 
 			}
@@ -180,6 +210,8 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 
 		return this.mdf.pool.query( query, args ).then( ( [ results ] ) => {
 
+			if ( ! Array.isArray( results[ 0 ] ) ) results = [ results ];
+
 			if ( ! this.mdf.lite )
 				for ( let i = 0; i < results.length; i ++ )
 					for ( let n = 0; n < results[ i ].length; n ++ )
@@ -202,8 +234,6 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 					let docs = result;
 					populates[ i ].path.slice( 0, - 1 ).forEach( pathPart =>
 						docs = [].concat( ...docs.map( doc => Array.isArray( doc[ pathPart ] ) ? doc[ pathPart ] : [ doc[ pathPart ] ] ) ) );
-
-					// console.log( table );
 
 					// Populate documents with next layer
 					const fullfillment = populates[ i ].path[ populates[ i ].path.length - 1 ];
