@@ -32,7 +32,16 @@ const mdf = new MDF( {
 } );
 ```
 
-### Querying
+### Create
+```JavaScript
+const tim = new mdf.collections.person( { first: "Tim", last: "Smith" } );
+await tim.save();
+console.log( ( await mdf.query( "person" ).where( { first: "Tim" } ).execute() )[ 0 ] );
+
+> { id: 6, first: 'Tim', last: 'Smith' }
+```
+
+### Read
 ```JavaScript
 mdf.query( "person" )
 	.populate( "friends", "friends.target" )
@@ -65,4 +74,14 @@ mdf.query( "person" )
        { source: 2, target: { id: 4, first: 'James', last: 'Joe' } },
        { source: 2,
          target: { id: 5, first: 'Kiefer', last: 'von Gaza' } } ] } ]
+```
+
+### Update
+```JavaScript
+const robert = ( await mdf.query( "person" ).where( { first: "Robert" } ).execute() )[ 0 ];
+robert.last = "Coel";
+await robert.save();
+console.log( ( await mdf.query( "person" ).where( { first: "Robert" } ).execute() )[ 0 ] );
+
+> { id: 2, first: 'Robert', last: 'Coel' }
 ```
