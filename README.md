@@ -1,7 +1,7 @@
 # mdf
 Simple, object-based interaction with SQL.
 
-## Example
+## Examples
 
 ### Schema
 ```MySQL
@@ -21,7 +21,7 @@ CREATE TABLE `friend` (
 );
 ```
 
-### Querying
+### Setup
 ```JavaScript
 const MDF = require( "../index.js" );
 
@@ -30,47 +30,39 @@ const mdf = new MDF( {
 	user: "test",
 	database: "test"
 } );
-
-setTimeout( () => {
-
-	mdf.query( "person" )
-		.populate( "friends", "friends.target" )
-		.where( { $or: [ { "person.first": "Robert" }, { "person.first": "Brad" } ] } )
-		.execute()
-		.then( results => console.log( results ) ).catch( err => console.error( err ) );
-
-}, 1000 );
 ```
-### Result
-```
-[ person {
-    id: 1,
+
+### Querying
+```JavaScript
+mdf.query( "person" )
+	.populate( "friends", "friends.target" )
+	.where( { $or: [ { "person.first": "Robert" }, { "person.first": "Brad" } ] } )
+	.execute()
+	.then( results => console.log( results ) ).catch( err => console.error( err ) );
+
+> [ { id: 1,
     first: 'Brad',
     last: 'Hesse',
     friends:
-     [ friend {
-         id: 1,
-         source: 1,
-         target: person { id: 2, first: 'Robert', last: 'Coe', friends: [Array] } },
-       friend {
-         id: 3,
-         source: 1,
-         target: person { id: 4, first: 'James', last: 'Joe' } } ] },
-  person {
-    id: 2,
+     [ { source: 1,
+         target:
+          { id: 2,
+            first: 'Robert',
+            last: 'Coe',
+            friends: [ [Object], [Object], [Object] ] } },
+       { source: 1, target: { id: 3, first: 'French', last: 'Boy' } },
+       { source: 1, target: { id: 4, first: 'James', last: 'Joe' } } ] },
+  { id: 2,
     first: 'Robert',
     last: 'Coe',
     friends:
-     [ friend {
-         id: 4,
-         source: 2,
-         target: person { id: 1, first: 'Brad', last: 'Hesse', friends: [Array] } },
-       friend {
-         id: 5,
-         source: 2,
-         target: person { id: 4, first: 'James', last: 'Joe' } },
-       friend {
-         id: 6,
-         source: 2,
-         target: person { id: 5, first: 'Kiefer', last: 'von Gaza' } } ] } ]
+     [ { source: 2,
+         target:
+          { id: 1,
+            first: 'Brad',
+            last: 'Hesse',
+            friends: [ [Object], [Object], [Object] ] } },
+       { source: 2, target: { id: 4, first: 'James', last: 'Joe' } },
+       { source: 2,
+         target: { id: 5, first: 'Kiefer', last: 'von Gaza' } } ] } ]
 ```
