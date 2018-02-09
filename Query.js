@@ -215,7 +215,7 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 			if ( ! this.mdf.lite )
 				for ( let i = 0; i < results.length; i ++ )
 					for ( let n = 0; n < results[ i ].length; n ++ )
-						results[ i ][ n ] = Object.assign( new this.mdf.collections[ this.tables[ i ] ](), results[ i ][ n ], { _new: false } );
+						results[ i ][ n ] = new this.mdf.collections[ this.tables[ i ] ]( Object.assign( results[ i ][ n ], { _new: false } ) );
 
 			const result = results[ 0 ].filter( row => row._table_sources.split( "," ).includes( this.select.name ) );
 

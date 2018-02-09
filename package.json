@@ -1,7 +1,7 @@
 {
   "name": "mfd",
   "version": "1.0.0",
-  "description": "",
+  "description": "Simple, object-based interaction with SQL.",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,5 +16,21 @@
     "@std/esm": "^0.20.0",
     "mysql2": "^1.5.1"
   },
-  "@std/esm": "cjs"
+  "@std/esm": "cjs",
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/voces/mdf.git"
+  },
+  "keywords": [
+    "mysql",
+    "sql",
+    "orm"
+  ],
+  "bugs": {
+    "url": "https://github.com/voces/mdf/issues"
+  },
+  "homepage": "https://github.com/voces/mdf#readme"
 }

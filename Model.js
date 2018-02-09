@@ -11,13 +11,9 @@ export default class Model {
 			_key: { value: {} }
 		}, ...this.constructor.key.map( key => ( {
 			[ key ]: {
-				get: () => this._[ key ],
-				set: value => {
-
-					if ( this._[ key ] === undefined ) this._key[ key ] = value;
-					this._[ key ] = value;
-
-				}
+				set: value => Object.defineProperty( this, key, { value: this._key[ key ] = value } ),
+				enumerable: true,
+				configurable: true
 			}
 		} ) ) ) );
 
