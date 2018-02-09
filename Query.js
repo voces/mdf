@@ -156,6 +156,16 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 	populate( ...populates ) {
 
 		const populatesParts = populates.map( populate => populate.split( "." ) ).sort( ( a, b ) => a.length > b.length );
+
+		// Expand populates (i.e., if only a.b is passed, generate a)
+		for ( let i = 0; i < populatesParts.length; i ++ )
+			if ( populatesParts[ i ].length > 1 )
+				for ( let n = 0; n < populatesParts[ i ].length; n ++ )
+					if ( ! populatesParts.find( parts => parts.length - 1 === n && parts.every( ( part, index ) => part === populatesParts[ i ][ index ] ) ) )
+						populatesParts.push( populatesParts[ i ].slice( 0, n + 1 ) );
+
+		populatesParts.sort( ( a, b ) => a.length > b.length );
+
 		this.populates = populatesParts.map( populate => {
 
 			const path = [ ...populate ];

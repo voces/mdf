@@ -33,6 +33,12 @@ export default class MFD {
 
 	}
 
+	async ready() {
+
+		return this._init.promise;
+
+	}
+
 	async refresh() {
 
 		// Ensure only one refresh runs at a time
