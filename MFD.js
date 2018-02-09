@@ -55,7 +55,7 @@ export default class MFD {
 			// Attach static value
 			tables.forEach( ( { table } ) => Object.defineProperties( this.collections[ table ], {
 				name: { value: table },
-				mdf: { value: this },
+				mfd: { value: this },
 				relations: { value: Object.assign(
 					constraints
 						.filter( relation => relation.table1 === table )

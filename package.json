@@ -22,7 +22,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/voces/mdf.git"
+    "url": "git+https://github.com/voces/mfd.git"
   },
   "keywords": [
     "mysql",
@@ -30,7 +30,7 @@
     "orm"
   ],
   "bugs": {
-    "url": "https://github.com/voces/mdf/issues"
+    "url": "https://github.com/voces/mfd/issues"
   },
-  "homepage": "https://github.com/voces/mdf#readme"
+  "homepage": "https://github.com/voces/mfd#readme"
 }

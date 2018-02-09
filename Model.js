@@ -21,10 +21,10 @@ export default class Model {
 
 	}
 
-	get _mdf() {
+	get _mfd() {
 
-		Object.defineProperty( this, "_mdf", { value: this.constructor.mdf } );
-		return this._mdf;
+		Object.defineProperty( this, "_mfd", { value: this.constructor.mfd } );
+		return this._mfd;
 
 	}
 
@@ -36,9 +36,9 @@ export default class Model {
 		const query = this._new ? "INSERT INTO ?? ( ?? ) VALUES ( ? );" : "UPDATE ?? SET ? WHERE ?;";
 		const args = this._new ? [ this.constructor.name, entries.map( entry => entry[ 0 ] ), entries.map( entry => entry[ 1 ] ) ] : [ this.constructor.name, Object.assign( {}, ...entries.map( ( [ key, value ] ) => ( { [ key ]: value } ) ) ), this._key ];
 
-		if ( this._mdf.debug ) console.log( this._mdf.pool.format( query, args ) );
+		if ( this._mfd.debug ) console.log( this._mfd.pool.format( query, args ) );
 
-		return this._mdf.pool.query( query, args );
+		return this._mfd.pool.query( query, args );
 
 	}
 

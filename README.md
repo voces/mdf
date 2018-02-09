@@ -1,4 +1,4 @@
-# mdf
+# mfd
 Simple, object-based interaction with SQL.
 
 ## Examples
@@ -23,9 +23,9 @@ CREATE TABLE `friend` (
 
 ### Setup
 ```JavaScript
-const MDF = require( "../index.js" );
+const MFD = require( "../index.js" );
 
-const mdf = new MDF( {
+const mfd = new MFD( {
 	host: "localhost",
 	user: "test",
 	database: "test"
@@ -34,16 +34,16 @@ const mdf = new MDF( {
 
 ### Create
 ```JavaScript
-const tim = new mdf.collections.person( { first: "Tim", last: "Smith" } );
+const tim = new mfd.collections.person( { first: "Tim", last: "Smith" } );
 await tim.save();
-console.log( ( await mdf.query( "person" ).where( { first: "Tim" } ).execute() )[ 0 ] );
+console.log( ( await mfd.query( "person" ).where( { first: "Tim" } ).execute() )[ 0 ] );
 
 > { id: 6, first: 'Tim', last: 'Smith' }
 ```
 
 ### Read
 ```JavaScript
-mdf.query( "person" )
+mfd.query( "person" )
 	.populate( "friends", "friends.target" )
 	.where( { $or: [ { "person.first": "Robert" }, { "person.first": "Brad" } ] } )
 	.execute()
@@ -78,10 +78,10 @@ mdf.query( "person" )
 
 ### Update
 ```JavaScript
-const robert = ( await mdf.query( "person" ).where( { first: "Robert" } ).execute() )[ 0 ];
+const robert = ( await mfd.query( "person" ).where( { first: "Robert" } ).execute() )[ 0 ];
 robert.last = "Coel";
 await robert.save();
-console.log( ( await mdf.query( "person" ).where( { first: "Robert" } ).execute() )[ 0 ] );
+console.log( ( await mfd.query( "person" ).where( { first: "Robert" } ).execute() )[ 0 ] );
 
 > { id: 2, first: 'Robert', last: 'Coel' }
 ```

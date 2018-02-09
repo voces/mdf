@@ -91,9 +91,9 @@ function processWhere( where, prefix = "", joiner = " AND " ) {
 
 export default class Query {
 
-	constructor( mdf ) {
+	constructor( mfd ) {
 
-		Object.defineProperty( this, "mdf", { value: mdf } );
+		Object.defineProperty( this, "mfd", { value: mfd } );
 		this.populates = [];
 
 	}
@@ -125,7 +125,7 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 		LEFT JOIN ?? AS ?? ON ??.?? = ??.??` ).join( "" )} ${this.whereQuery ? `
 	WHERE ${this.whereQuery}` : ""}` ).join( `
 	UNION DISTINCT` )}
-) t1 GROUP BY ${this.mdf.collections[ table ].key.map( () => "??" ).join( ", " )};` ).join( "\n" );
+) t1 GROUP BY ${this.mfd.collections[ table ].key.map( () => "??" ).join( ", " )};` ).join( "\n" );
 
 		const args = flatten( tables.map( ( [ table, unions ] ) => [
 			unions.map( source => [
@@ -140,7 +140,7 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 					populate.path.join( "__" ),
 					populate.relation.target.column ] ),
 				this.whereArgs || [] ] ),
-			this.mdf.collections[ table ].key ] ) );
+			this.mfd.collections[ table ].key ] ) );
 
 		return [ query, args ];
 
@@ -148,7 +148,7 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 
 	select( table ) {
 
-		this.select = this.mdf.collections[ table ];
+		this.select = this.mfd.collections[ table ];
 		return this;
 
 	}
@@ -185,7 +185,7 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 
 		const [ query, args ] = this.render();
 
-		if ( this.mdf.debug ) {
+		if ( this.mfd.debug ) {
 
 			let str = query;
 			let i = 0;
@@ -208,14 +208,14 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 
 		}
 
-		return this.mdf.pool.query( query, args ).then( ( [ results ] ) => {
+		return this.mfd.pool.query( query, args ).then( ( [ results ] ) => {
 
 			if ( ! Array.isArray( results[ 0 ] ) ) results = [ results ];
 
-			if ( ! this.mdf.lite )
+			if ( ! this.mfd.lite )
 				for ( let i = 0; i < results.length; i ++ )
 					for ( let n = 0; n < results[ i ].length; n ++ )
-						results[ i ][ n ] = new this.mdf.collections[ this.tables[ i ] ]( Object.assign( results[ i ][ n ], { _new: false } ) );
+						results[ i ][ n ] = new this.mfd.collections[ this.tables[ i ] ]( Object.assign( results[ i ][ n ], { _new: false } ) );
 
 			const result = results[ 0 ].filter( row => row._table_sources.split( "," ).includes( this.select.name ) );
 
