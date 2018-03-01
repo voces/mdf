@@ -39,6 +39,16 @@ function processWhere( where, prefix = "", joiner = " AND " ) {
 			case "$ne": pPush( [ strings, args ], processWhere( right, " <> " ) ); break;
 			case "$like": pPush( [ strings, args ], processWhere( right, " LIKE " ) ); break;
 			case "$sounds": pPush( [ strings, args ], processWhere( right, " SOUNDS LIKE " ) ); break;
+			case "$isnull": {
+
+				const [ string, tArgs ] = processWhere( right );
+
+				strings.push( `ISNULL( ${string} )` );
+				args.push( ...tArgs );
+
+				break;
+
+			}
 
 			// Logical
 			case "$and": {
