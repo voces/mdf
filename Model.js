@@ -32,8 +32,8 @@ export default class Model {
 		const columnNames = this.constructor.columns;
 		const entries = Object.entries( this ).filter( ( [ key ] ) => columnNames.includes( key ) );
 
-		const query = this._new ? "INSERT INTO ?? ( ?? ) VALUES ( ? );" : "UPDATE ?? SET ? WHERE ?;";
-		const args = this._new ? [ this.constructor.name, entries.map( entry => entry[ 0 ] ), entries.map( entry => entry[ 1 ] ) ] : [ this.constructor.name, Object.assign( {}, ...entries.map( ( [ key, value ] ) => ( { [ key ]: value } ) ) ), this._key ];
+		const query = this._new ? "INSERT INTO ?? ( ?? ) VALUES ( ? );" : `UPDATE ?? SET ? WHERE ${Object.keys( this._key ).map( () => "?? = ?" ).join( " AND " )};`;
+		const args = this._new ? [ this.constructor.name, entries.map( entry => entry[ 0 ] ), entries.map( entry => entry[ 1 ] ) ] : [ this.constructor.name, Object.assign( {}, ...entries.map( ( [ key, value ] ) => ( { [ key ]: value } ) ) ), ...[].concat( ...Object.entries( this._key ) ) ];
 
 		if ( this._mfd.debug ) console.log( this._mfd.pool.format( query, args ) );
 

@@ -1,6 +1,6 @@
 {
   "name": "mfd",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Simple, object-based interaction with SQL.",
   "main": "index.js",
   "scripts": {
