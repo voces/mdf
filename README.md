@@ -1,4 +1,4 @@
-# mfd
+# zql
 Simple, object-based selecting with SQL.
 
 ## Examples
