@@ -1,38 +1,42 @@
 {
-  "name": "mfd",
-  "version": "1.0.4",
-  "description": "Simple, object-based interaction with SQL.",
-  "main": "index.js",
-  "scripts": {
-    "test": "mocha test/index.js"
-  },
-  "author": "Robert Coe",
-  "license": "ISC",
-  "devDependencies": {
-    "eslint": "^4.16.0",
-    "eslint-config-mdcs": "^4.2.3",
-    "eslint-plugin-mocha": "^4.11.0",
-    "mocha": "^5.0.1"
-  },
-  "dependencies": {
-    "@std/esm": "^0.20.0",
-    "mysql2": "^1.5.1"
-  },
-  "@std/esm": "cjs",
-  "directories": {
-    "test": "test"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/voces/mfd.git"
-  },
-  "keywords": [
-    "mysql",
-    "sql",
-    "orm"
-  ],
-  "bugs": {
-    "url": "https://github.com/voces/mfd/issues"
-  },
-  "homepage": "https://github.com/voces/mfd#readme"
+	"name": "zql",
+	"version": "1.0.1",
+	"description": "Simple, object-based selecting with SQL.",
+	"main": "index.js",
+	"scripts": {
+		"test": "mocha test/index.js"
+	},
+	"author": "Robert Coe",
+	"license": "ISC",
+	"devDependencies": {
+		"babel-eslint": "^8.2.6",
+		"eslint": "^5.4.0",
+		"eslint-config-mdcs": "^4.2.3",
+		"eslint-plugin-mocha": "^5.2.0",
+		"mocha": "^5.2.0",
+		"mysql2": "^1.6.1"
+	},
+	"dependencies": {
+		"esm": "^3.0.81",
+		"json-stringify-pretty-compact": "^1.2.0"
+	},
+	"directories": {
+		"test": "test"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/voces/mfd.git"
+	},
+	"keywords": [
+		"mysql",
+		"sql",
+		"orm"
+	],
+	"files": [
+		"*.js"
+	],
+	"bugs": {
+		"url": "https://github.com/voces/mfd/issues"
+	},
+	"homepage": "https://github.com/voces/mfd#readme"
 }

@@ -1,3 +1,4 @@
 
-require = require( "@std/esm" )( module );
-module.exports = require( "./MFD.js" ).default;
+// eslint-disable-next-line no-global-assign
+require = require( "esm" )( module );
+module.exports = require( "./ZQL.js" ).default;
