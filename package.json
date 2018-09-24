@@ -1,20 +1,23 @@
 {
 	"name": "zql",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"description": "Simple, object-based selecting with SQL.",
 	"main": "index.js",
 	"scripts": {
-		"test": "mocha test/index.js"
+		"test": "mocha -r esm './test**/*.test.js' --exit"
 	},
 	"author": "Robert Coe",
 	"license": "ISC",
 	"devDependencies": {
+		"@sinonjs/referee-sinon": "^4.1.0",
 		"babel-eslint": "^8.2.6",
 		"eslint": "^5.4.0",
 		"eslint-config-mdcs": "^4.2.3",
 		"eslint-plugin-mocha": "^5.2.0",
+		"jsverify": "^0.8.3",
 		"mocha": "^5.2.0",
-		"mysql2": "^1.6.1"
+		"mysql2": "^1.6.1",
+		"sinon": "^6.3.4"
 	},
 	"dependencies": {
 		"esm": "^3.0.81",

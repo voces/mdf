@@ -86,20 +86,58 @@ function formatWhere( where, prefix = "", joiner = " AND " ) {
 
 }
 
+const cloneProps = ( source, target, exclude = [] ) => {
+
+	for ( const prop in source )
+		if ( source.hasOwnProperty( prop ) && isNaN( prop ) && ! exclude.includes( prop ) )
+			target[ prop ] = source[ prop ];
+
+	return target;
+
+};
+
+class Populate {
+
+	constructor( def ) {
+
+		Object.assign( this, def );
+
+	}
+
+}
+
 function formatPopulates( table, populates ) {
 
-	const populatesParts = populates.map( populate => populate.split( "." ) ).sort( ( a, b ) => a.length > b.length );
+	// Takes in an array of either strings or objects with `path`
+	// Returns array of objects with `path`
+	const populatesParts = populates
+		.map( populate => {
 
-	// Expand populates (i.e., if only a.b is passed, generate a)
+			const path = typeof populate === "string" ? populate : populate.path;
+			const parts = path.split( "." );
+			if ( typeof populate !== "string" ) {
+
+				Object.assign( parts, populate );
+				delete parts.path;
+
+			}
+			return parts;
+
+		} )
+		.sort( ( a, b ) => a.length > b.length );
+
+	// Expand populates (i.e., if only a.b is passed, generate a; should clone props from a.b)
 	for ( let i = 0; i < populatesParts.length; i ++ )
 		if ( populatesParts[ i ].length > 1 )
 			for ( let n = 0; n < populatesParts[ i ].length; n ++ )
 				if ( ! populatesParts.find( parts => parts.length - 1 === n && parts.every( ( part, index ) => part === populatesParts[ i ][ index ] ) ) )
-					populatesParts.push( populatesParts[ i ].slice( 0, n + 1 ) );
+					populatesParts.push( cloneProps( populatesParts[ i ], populatesParts[ i ].slice( 0, n + 1 ) ) );
 
+	// Sort by depth of path: "a" before "a.b"
 	populatesParts.sort( ( a, b ) => a.length > b.length );
 
-	const done = populatesParts.map( populate => {
+	// Instead of returning { path: "a.b", ...values }, we return Populate { path: "a.b", relation: <TableRelation>, ...values }
+	return populatesParts.map( populate => {
 
 		const path = [ ...populate ];
 		let relation = table.relations[ populate.shift() ];
@@ -107,13 +145,14 @@ function formatPopulates( table, populates ) {
 		while ( populate.length )
 			relation = relation.table.relations[ populate.shift() ];
 
-		return { path, relation };
+		return cloneProps( populate, new Populate( { path, relation } ) );
 
 	} );
 
-	return done;
-
 }
+
+const raw = str => ( { toSqlString: () => str } );
+const columns = specOrPopulate => specOrPopulate instanceof Populate ? specOrPopulate.relation.table.columns : specOrPopulate.columns;
 
 export default class ZQL {
 
@@ -164,6 +203,8 @@ export default class ZQL {
 
 		if ( spec ) {
 
+			if ( typeof spec !== "object" ) throw new Error( ".spec should be an object" );
+
 			this.spec = spec;
 			this.specTables = Object.values( spec );
 
@@ -202,6 +243,8 @@ export default class ZQL {
 
 	}
 
+	// Takes in table (string) and populates (Array<Populate>)
+	// Returns [ tables Array<[tableName (string), populates (Array<Populate>)]>, tableNames (Array<string) ]
 	formatTables( table, populates = [] ) {
 
 		const tables = {};
@@ -241,22 +284,50 @@ export default class ZQL {
 		// Group select & relations by table
 		const [ tables, tablesKey ] = this.formatTables( table, populates );
 		const [ whereQuery, whereArgs ] = where ? formatWhere( where ) : [];
+		const limits = flatten( tables.map( ( [ , unions ] ) => unions.filter( union => union instanceof Populate && union.limit ) ) );
 
 		const query = tables.map( ( [ table, unions ] ) => `
-SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map( () => `
-	SELECT DISTINCT ??.*, ? AS _table_source
-	FROM ?? ${populates.map( () => `
+SELECT \`t1\`.\`*\`, GROUP_CONCAT( \`_table_source\` ) AS \`_table_sources\` FROM (${unions.map( union => ` (
+	SELECT DISTINCT ${columns( union ).map( () => "??" ).join( ", " )}, \`_table_source\` FROM (
+		SELECT
+			DISTINCT ??.\`*\`,
+			? AS \`_table_source\`${limits.length ? `,
+			${populates.map( () => `? := IF( ? = ??.??, ? + 1, 1 ) AS ??,
+			? := ??.?? AS ??` ).join( `,
+			` )}` : ""}
+		FROM ?? ${populates.map( () => `
 		LEFT JOIN ?? AS ?? ON ??.?? = ??.??` ).join( "" )} ${whereQuery ? `
-	WHERE ${whereQuery}` : ""} ${limit ? `
-	LIMIT ?` : ""}` ).join( `
-	UNION DISTINCT` )}
-) t1 GROUP BY ${this.spec[ table ].key.map( () => "??" ).join( ", " )};` ).join( "\n" );
+		WHERE ${whereQuery}` : ""} ${ limits.length && populates.length ? `
+		ORDER BY ${populates.map( () => "??.??" ).join( ", " )}` : ""}
+	) t2 ${limits.length ? `
+	WHERE ${limits.map( () => "?? <= ?" ).join( " AND " )}` : limit ? `
+	LIMIT ?` : ""}
+)` ).join( " UNION DISTINCT" )} ) \`t1\` GROUP BY ${this.spec[ table ].key.map( () => "??" ).join( ", " )};` ).join( "\n" );
 
 		const args = flatten( tables.map( ( [ tableName, unions ] ) => [
 			unions.map( source => [
+				// L2: select column names
+				columns( source ),
+				// L3: table.*
 				this.specTables.includes( source ) ? source.name : source.path.join( "__" ),
+				// L3: tableName for _table_source
 				this.specTables.includes( source ) ? source.name : source.path.join( "__" ),
+				// L3: Rankings
+				limits.length ? populates.map( populate => [
+					raw( `@${populate.path.join( "__" )}__rank` ),
+					raw( `@${populate.path.join( "__" )}__current` ),
+					populate.path.slice( 0, - 1 ).join( "__" ) || table,
+					Object.keys( populate.relation.on )[ 0 ],
+					raw( `@${populate.path.join( "__" )}__rank` ),
+					`${populate.path.join( "__" )}__rank`,
+					raw( `@${populate.path.join( "__" )}__current` ),
+					populate.path.slice( 0, - 1 ).join( "__" ) || table,
+					Object.keys( populate.relation.on )[ 0 ],
+					`${populate.path.join( "__" )}__current`
+				] ) : [],
+				// L3: from
 				table,
+				// L3: joins
 				populates.map( populate => [
 					populate.relation.table.name,
 					populate.path.join( "__" ),
@@ -264,8 +335,20 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 					Object.keys( populate.relation.on )[ 0 ],
 					populate.path.join( "__" ),
 					Object.values( populate.relation.on )[ 0 ] ] ),
+				// L3: where
 				whereArgs || [],
-				limit ? limit : [] ] ),
+				// L3: group by
+				limits.length ? populates.map( populate => [ populate.path.slice( 0, - 1 ).join( "__" ) || table, Object.keys( populate.relation.on )[ 0 ] ] ) : [],
+				// L2: limit
+				limits.length || limit ?
+					limits.length ?
+						limits.map( limit => [
+							`${limit.path.join( "__" )}__rank`,
+							limit.limit
+						] ) :
+						limit
+					: []
+			] ),
 			this.spec[ tableName ].key ] ) );
 
 		return [ query, args, tablesKey, populates ];
@@ -278,7 +361,7 @@ SELECT t1.*, GROUP_CONCAT( _table_source ) AS _table_sources FROM (${unions.map(
 
 			if ( ! this.spec[ table ] ) throw new Error( `Unknown table '${table}'` );
 
-			if ( typeof populates[ 0 ] === "string" ) return formatPopulates( this.spec[ table ], populates );
+			if ( typeof populates[ 0 ] === "string" || ! ( populates[ 0 ] instanceof Populate ) ) return formatPopulates( this.spec[ table ], populates );
 			return populates;
 
 		}

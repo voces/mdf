@@ -1,6 +1,7 @@
 
 /* eslint-disable no-console */
 
+import util from "util";
 import stringify from "json-stringify-pretty-compact";
 import ZQL from "../ZQL.js";
 import MySQL from "mysql2/promise";
@@ -54,13 +55,14 @@ const models = { person: Person, friend: Friend };
 		return doc[ field ] = value;
 
 	};
-	const zql = new ZQL( { query, autogen: true, database: "test", replacer, populater } );
+	const zql = new ZQL( { query, format: ( ...args ) => mysql.format( ...args ), autogen: true, database: "test", replacer, populater } );
 
 	await zql.ready;
 
 	// Select with populates
-	const person = ( await zql.select( "person", { where: { "person.id": { $lte: 1 } }, populates: [ "friends.targetId" ] } ) )[ 0 ];
-	console.log( stringify( person, { margins: true } ) );
+	const persons = ( await zql.select( "person", { where: { $or: [ { "person.id": 1 }, { "person.id": 2 } ] }, populates: [ { path: "friends.targetId", limit: 2 } ] } ) );
+	console.log( util.inspect( persons, { depth: 4 } ) );
+	// console.log( stringify( persons, { margins: true } ) );
 
 	process.exit( 0 );
 

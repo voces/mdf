@@ -112,7 +112,7 @@ const models = { person: Person, friend: Friend };
 
 ### Selecting
 ```JavaScript
-// Select the persion with id 1, populating their friends
+// Select the person with id 1, populating their friends
 const person = ( await zql.select( "person", { where: { "person.id": 1 }, populates: [ "friends.targetId" ] } ) )[ 0 ];
 console.log( stringify( person, { margins: true } ) );
 
@@ -126,4 +126,29 @@ console.log( stringify( person, { margins: true } ) );
     { "id": 4, "first": "Jonathan", "last": "Pangborn" }
   ]
 }
+```
+
+### Limited populating
+```JavaScript
+// Select the person with id 1 or 2, populating at most 2 of their friends
+const persons = ( await zql.select( "person", { where: { $or: [ { "person.id": 1 }, { "person.id": 2 } ] }, populates: [ { path: "friends.targetId", limit: 2 } ] } ) );
+console.log( stringify( person, { margins: true } ) );
+
+> [ {
+  "id": 1,
+  "first": "Stephen",
+  "last": "Strange",
+  "friends": [
+    { "id": 2, "first": "Christine", "last": "Palmer", "friends": [ /* Circular */ ] },
+    { "id": 3, "first": "Nicodemus", "last": "West" }
+  ]
+}, {
+  "id": 1,
+  "first": "Christine",
+  "last": "Palmer",
+  "friends": [
+    { "id": 1, "first": "Stephen", "last": "Strange", "friends": [ /* Circular */ ] },
+    { "id": 3, "first": "Nicodemus", "last": "West" }
+  ]
+} ]
 ```
